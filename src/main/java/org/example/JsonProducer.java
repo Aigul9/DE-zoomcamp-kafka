@@ -11,6 +11,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import io.github.cdimascio.dotenv.Dotenv;
@@ -50,15 +51,16 @@ public class JsonProducer {
 
     }
 
-    public void publishRides(List<Ride> rides) {
+    public void publishRides(List<Ride> rides) throws InterruptedException, ExecutionException {
         var kafkaProducer = new KafkaProducer<String, Ride>(props);
         for (Ride ride: rides) {
-            System.out.println(ride.PULocationID);
-            kafkaProducer.send(new ProducerRecord<>("rides", String.valueOf(ride.PULocationID), ride));
+            var record = kafkaProducer.send(new ProducerRecord<>("rides", String.valueOf(ride.PULocationID), ride));
+            System.out.println(ride.PULocationID + " " + record.get().offset());
+            Thread.sleep(500);
         }
     }
 
-    public static void main(String[] args) throws IOException, CsvException {
+    public static void main(String[] args) throws IOException, CsvException, InterruptedException, ExecutionException {
         var producer = new JsonProducer();
         var rides = producer.getRides();
         producer.publishRides(rides);
